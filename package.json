@@ -2,7 +2,19 @@
   "name": "beenthere",
   "version": "0.1.0",
   "private": true,
+  "description": "A Devvit hackathon app that surfaces lived experience on Reddit with user context tags, mod vouches, and thread summaries.",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/krxa14/beenthere.git"
+  },
+  "keywords": [
+    "devvit",
+    "reddit",
+    "hackathon",
+    "typescript",
+    "moderation"
+  ],
   "scripts": {
     "build": "tsc --noEmit"
   },
