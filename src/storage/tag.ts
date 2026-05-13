@@ -51,7 +51,7 @@ function deserializeTagRecord(record: Record<string, string>): TagRecord | undef
 export async function writeTag(context: MutableStorageContext, tag: TagRecord): Promise<void> {
   await context.redis.hSet(tagKey(tag.contentId), serializeTagRecord(tag));
   await addTagToPostIndex(context, tag.postId, tag.contentId, tag.ts);
-  await markDirty(context, tag.postId, tag.ts);
+  await markDirty(context, tag.postId);
 }
 
 export async function getTag(context: ReadTagContext, contentId: string): Promise<TagRecord | undefined> {

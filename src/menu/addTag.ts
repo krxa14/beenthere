@@ -20,6 +20,11 @@ Devvit.addMenuItem({
 
     const targetType = event.location === 'comment' ? 'comment' : 'post';
     const data = await buildTagFormData(context, event.targetId, targetType);
+    if (data.enabledTags.length === 0) {
+      context.ui.showToast({ text: 'No tag types are enabled in this subreddit.', appearance: 'neutral' });
+      return;
+    }
+
     await openAddTagForm(context, data);
   },
 });

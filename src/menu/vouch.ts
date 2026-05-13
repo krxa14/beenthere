@@ -6,6 +6,12 @@ Devvit.addMenuItem({
   forUserType: 'moderator',
   label: 'BeenThere: Vouch this context',
   onPress: async (event, context) => {
+    const moderatorName = await context.reddit.getCurrentUsername();
+    if (!moderatorName) {
+      context.ui.showToast({ text: 'Could not identify moderator.', appearance: 'neutral' });
+      return;
+    }
+
     const existing = await getTag(context, event.targetId);
     if (!existing) {
       context.ui.showToast({ text: 'No tag on this item.', appearance: 'neutral' });
@@ -17,7 +23,7 @@ Devvit.addMenuItem({
       return;
     }
 
-    const tag = await vouchTag(context, event.targetId, (await context.reddit.getCurrentUsername()) ?? 'unknown_mod');
+    const tag = await vouchTag(context, event.targetId, moderatorName);
     if (!tag) {
       context.ui.showToast({ text: 'No tag on this item.', appearance: 'neutral' });
       return;

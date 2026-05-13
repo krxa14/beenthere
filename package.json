@@ -18,6 +18,9 @@
   "scripts": {
     "build": "tsc --noEmit"
   },
+  "overrides": {
+    "protobufjs": "7.5.5"
+  },
   "dependencies": {
     "@devvit/public-api": "^0.12.22"
   },

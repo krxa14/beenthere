@@ -7,6 +7,10 @@ import { sanitizeTagValue } from '../util/parse.js';
 
 const PENDING_TAG_FORM_TTL_SECONDS = 10 * 60;
 
+function expiryFromNow(seconds: number): Date {
+  return new Date(Date.now() + seconds * 1000);
+}
+
 function buildTagOptions(data: TagFormData): Array<{ label: string; value: string }> {
   if (!data.currentTag) {
     return data.enabledTags.map((tag) => ({ label: tag.label, value: tag.id }));
@@ -43,8 +47,9 @@ async function storePendingFormState(context: Context, formKind: 'add' | 'edit',
     return;
   }
 
-  await context.redis.set(key, JSON.stringify(data));
-  await context.redis.expire(key, PENDING_TAG_FORM_TTL_SECONDS);
+  await context.redis.set(key, JSON.stringify(data), {
+    expiration: expiryFromNow(PENDING_TAG_FORM_TTL_SECONDS),
+  });
 }
 
 async function consumePendingFormState(context: Context, formKind: 'add' | 'edit'): Promise<TagFormData | undefined> {
@@ -74,6 +79,34 @@ async function upsertTagFromForm(
   }
 
   const target = await getTargetSnapshot(context, state.targetId, state.targetType);
+  if (target.deleted) {
+    context.ui.showToast({ text: 'Deleted content cannot be tagged.', appearance: 'neutral' });
+    return false;
+  }
+
+  if (target.authorName !== currentUser.username) {
+    context.ui.showToast({ text: 'Only own posts can be tagged.', appearance: 'neutral' });
+    return false;
+  }
+
+  const selectedTagType = values.tagType[0] ?? '';
+  const existingTag = await getTag(context, state.targetId);
+  const allowedTagTypes = new Set<string>(state.enabledTags.map((tag) => tag.id));
+  if (existingTag?.tagType) {
+    allowedTagTypes.add(existingTag.tagType);
+  }
+
+  if (!selectedTagType || !allowedTagTypes.has(selectedTagType)) {
+    context.ui.showToast({ text: 'That tag type is no longer available.', appearance: 'neutral' });
+    return false;
+  }
+
+  const sanitizedValue = sanitizeTagValue(values.value);
+  if (!sanitizedValue) {
+    context.ui.showToast({ text: 'Add a short detail for the tag.', appearance: 'neutral' });
+    return false;
+  }
+
   const now = Date.now();
 
   const tag: TagRecord = {
@@ -82,12 +115,12 @@ async function upsertTagFromForm(
     postId: target.postId,
     authorName: currentUser.username,
     authorId: currentUser.id ?? '',
-    tagType: values.tagType[0] ?? '',
-    value: sanitizeTagValue(values.value),
+    tagType: selectedTagType,
+    value: sanitizedValue,
     vouched: false,
     vouchedBy: null,
     vouchedAt: null,
-    ts: now,
+    ts: existingTag?.ts ?? now,
   };
 
   await writeTag(context, tag);
@@ -180,6 +213,13 @@ export const editTagForm = Devvit.createForm(
     const shouldRemove = Boolean(event.values.removeTag);
 
     if (shouldRemove) {
+      const currentUser = await context.reddit.getCurrentUsername();
+      const existingTag = await getTag(context, state.targetId);
+      if (!currentUser || !existingTag || existingTag.authorName !== currentUser) {
+        context.ui.showToast({ text: 'No tag to edit.', appearance: 'neutral' });
+        return;
+      }
+
       await deleteTag(context, state.targetId);
       context.ui.showToast({ text: 'Tag removed.', appearance: 'success' });
       return;

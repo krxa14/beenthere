@@ -43,6 +43,8 @@ export const DEFAULT_ENABLED_TAGS: TagTypeId[] = ['owner', 'tried', 'local', 'pr
 
 export const DEFAULT_SUMMARY_THRESHOLD = 3;
 export const DEFAULT_SUMMARY_REFRESH_SEC = 60;
+export const MIN_SUMMARY_REFRESH_SEC = 60;
+export const MAX_SUMMARY_REFRESH_SEC = 3600;
 
 Devvit.addSettings([
   {
@@ -83,6 +85,10 @@ Devvit.addSettings([
     name: 'summaryRefreshSec',
     label: 'Summary refresh interval (sec)',
     defaultValue: DEFAULT_SUMMARY_REFRESH_SEC,
+    onValidate: ({ value }) =>
+      value !== undefined && (value < MIN_SUMMARY_REFRESH_SEC || value > MAX_SUMMARY_REFRESH_SEC)
+        ? `${MIN_SUMMARY_REFRESH_SEC}-${MAX_SUMMARY_REFRESH_SEC}`
+        : undefined,
   },
   {
     type: 'boolean',
@@ -104,7 +110,7 @@ export async function getNegativeKeywords(context: SettingsContext): Promise<str
 
 export async function getEnabledTags(context: SettingsContext): Promise<TagOption[]> {
   const raw = await context.settings.get<string[]>('enabledTags');
-  const enabledIds = raw && raw.length > 0 ? new Set(raw) : new Set(DEFAULT_ENABLED_TAGS);
+  const enabledIds = raw ? new Set(raw) : new Set(DEFAULT_ENABLED_TAGS);
   return DEFAULT_TAG_OPTIONS.filter((option) => enabledIds.has(option.id));
 }
 
@@ -113,7 +119,8 @@ export async function getSummaryThreshold(context: SettingsContext): Promise<num
 }
 
 export async function getSummaryRefreshSec(context: SettingsContext): Promise<number> {
-  return (await context.settings.get<number>('summaryRefreshSec')) ?? DEFAULT_SUMMARY_REFRESH_SEC;
+  const raw = (await context.settings.get<number>('summaryRefreshSec')) ?? DEFAULT_SUMMARY_REFRESH_SEC;
+  return Math.min(MAX_SUMMARY_REFRESH_SEC, Math.max(MIN_SUMMARY_REFRESH_SEC, raw));
 }
 
 export async function getStickySummary(context: SettingsContext): Promise<boolean> {

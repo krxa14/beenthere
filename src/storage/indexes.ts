@@ -40,8 +40,11 @@ export async function getDueDirtyPosts(
   cutoffMs: number,
   limit = 50,
 ): Promise<Array<{ postId: string; score: number }>> {
-  const entries = await context.redis.zRange(DIRTY_QUEUE_KEY, 0, cutoffMs, { by: 'score' });
-  return entries.slice(0, limit).map((entry: { member: string; score: number }) => ({
+  const entries = await context.redis.zRange(DIRTY_QUEUE_KEY, 0, cutoffMs, {
+    by: 'score',
+    limit: { offset: 0, count: limit },
+  });
+  return entries.map((entry: { member: string; score: number }) => ({
     postId: entry.member,
     score: entry.score,
   }));
