@@ -1,0 +1,15 @@
+{
+  "name": "beenthere",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@devvit/public-api": "^0.12.22"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
